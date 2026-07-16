@@ -50,8 +50,6 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git pull --rebase origin "${DEFAULT_BRANCH}"
-
           git add data/plans data/snapshots public/data
 
           if git diff --cached --quiet; then
@@ -60,6 +58,8 @@ jobs:
           fi
 
           git commit -m "data: start exchange-rate observations for ${PLAN_DATE}"
+
+          git pull --rebase origin "${DEFAULT_BRANCH}"
 
           git push origin "HEAD:${DEFAULT_BRANCH}" || {
             git pull --rebase origin "${DEFAULT_BRANCH}"
