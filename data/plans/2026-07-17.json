@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "date": "2026-07-17",
+  "timezone": "Asia/Dhaka",
+  "createdAt": "2026-07-16T21:30:37.150Z",
+  "snapshotCount": 4,
+  "plannerSnapshotIncluded": true,
+  "selectedSlots": [
+    {
+      "id": "slot-02",
+      "cron": "43 4 * * *",
+      "utcTime": "04:43"
+    },
+    {
+      "id": "slot-03",
+      "cron": "11 8 * * *",
+      "utcTime": "08:11"
+    },
+    {
+      "id": "slot-07",
+      "cron": "23 21 * * *",
+      "utcTime": "21:23"
+    }
+  ],
+  "completedSlots": []
+}
