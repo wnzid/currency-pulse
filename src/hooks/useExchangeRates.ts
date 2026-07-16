@@ -5,6 +5,7 @@ import {
   normalizeHistory,
   normalizeLatestSnapshot,
 } from "../utils/currency";
+import { publicAssetPath } from "../utils/assets";
 
 async function fetchJson(path: string): Promise<unknown> {
   const response = await fetch(path);
@@ -33,8 +34,8 @@ export function useExchangeRates(): ExchangeRatesState {
       setLoading(true);
 
       const [latestResult, historyResult] = await Promise.allSettled([
-        fetchJson("/data/latest.json"),
-        fetchJson("/data/history.json"),
+        fetchJson(publicAssetPath("data/latest.json")),
+        fetchJson(publicAssetPath("data/history.json")),
       ]);
 
       if (cancelled) {

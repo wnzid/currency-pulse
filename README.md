@@ -94,6 +94,58 @@ Dashboard reads repository data
   - Marks the slot as completed in the plan.
   - Commits and pushes generated files.
 
+- `.github/workflows/deploy-pages.yml`
+  - Runs on pushes to `main` for relevant frontend and public data paths.
+  - Runs lint, builds the React dashboard, verifies `dist` files, and deploys via GitHub Pages artifact workflow actions.
+  - Uses `contents: read`, `pages: write`, and `id-token: write` only.
+
+## Deployment
+
+### Live Dashboard
+
+Expected project Pages URL:
+
+`https://<github-username>.github.io/currency-pulse/`
+
+### Deployment Process
+
+```text
+Snapshot committed
+      ↓
+Pages workflow starts
+      ↓
+React app builds
+      ↓
+Stored JSON copied into dist
+      ↓
+Artifact uploaded
+      ↓
+GitHub Pages deploys
+```
+
+### Repository Setting
+
+Enable GitHub Pages from Actions:
+
+`Settings -> Pages -> Build and deployment -> Source -> GitHub Actions`
+
+### Local Production Test
+
+```bash
+npm run build
+npm run preview
+```
+
+Local preview serves the production build output.
+
+### Data Source in Deployment
+
+- The deployed dashboard reads committed JSON files from `public/data` (copied to `dist/data`).
+- No backend or database is required.
+- The latest successful deployment includes the latest committed dataset.
+- Deployment usually follows shortly after a snapshot commit.
+- Your local computer does not need to be running for deployment.
+
 ## Required Repository Setting
 
 Enable write permissions for workflows:
