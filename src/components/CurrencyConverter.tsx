@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { LatestSnapshotData } from "../types/exchange";
 import { CurrencySelector } from "./CurrencySelector";
 import { formatRate } from "../utils/currency";
@@ -49,18 +49,13 @@ export function CurrencyConverter({
   const [baseCurrency, setBaseCurrency] = useState(latest.base);
   const [targetCurrency, setTargetCurrency] = useState("BDT");
 
-  useEffect(() => {
-    if (!currencies.includes(baseCurrency)) {
-      setBaseCurrency(currencies[0] ?? latest.base);
-    }
+  const effectiveBaseCurrency = currencies.includes(baseCurrency)
+    ? baseCurrency
+    : (currencies[0] ?? latest.base);
 
-    if (!currencies.includes(targetCurrency)) {
-      const fallback = currencies.includes("BDT")
-        ? "BDT"
-        : (currencies[0] ?? latest.base);
-      setTargetCurrency(fallback);
-    }
-  }, [currencies, baseCurrency, targetCurrency, latest.base]);
+  const effectiveTargetCurrency = currencies.includes(targetCurrency)
+    ? targetCurrency
+    : (currencies.includes("BDT") ? "BDT" : (currencies[0] ?? latest.base));
 
   const numericAmount = Number(amount);
 
@@ -68,11 +63,11 @@ export function CurrencyConverter({
     () =>
       convertAmount(
         numericAmount,
-        baseCurrency,
-        targetCurrency,
+        effectiveBaseCurrency,
+        effectiveTargetCurrency,
         latest,
       ),
-    [numericAmount, baseCurrency, targetCurrency, latest],
+    [numericAmount, effectiveBaseCurrency, effectiveTargetCurrency, latest],
   );
 
   return (
@@ -98,7 +93,7 @@ export function CurrencyConverter({
         <CurrencySelector
           id="convert-base"
           label="Base currency"
-          value={baseCurrency}
+          value={effectiveBaseCurrency}
           options={currencies}
           onChange={setBaseCurrency}
         />
@@ -106,7 +101,7 @@ export function CurrencyConverter({
         <CurrencySelector
           id="convert-target"
           label="Target currency"
-          value={targetCurrency}
+          value={effectiveTargetCurrency}
           options={currencies}
           onChange={setTargetCurrency}
         />
@@ -116,16 +111,16 @@ export function CurrencyConverter({
         {conversion ? (
           <>
             <p className="result-amount">
-              {numericAmount.toLocaleString()} {baseCurrency} ={" "}
+              {numericAmount.toLocaleString()} {effectiveBaseCurrency} ={" "}
               {conversion.convertedAmount.toLocaleString(undefined, {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 6,
               })}{" "}
-              {targetCurrency}
+              {effectiveTargetCurrency}
             </p>
             <p className="card-subtle">
-              Exchange rate used: 1 {baseCurrency} = {formatRate(conversion.appliedRate)}{" "}
-              {targetCurrency}
+              Exchange rate used: 1 {effectiveBaseCurrency} = {formatRate(conversion.appliedRate)}{" "}
+              {effectiveTargetCurrency}
             </p>
             <p className="card-subtle">
               Snapshot timestamp: {latest.observedAt ?? "Unknown"}

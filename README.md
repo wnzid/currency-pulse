@@ -1,75 +1,107 @@
-# React + TypeScript + Vite
+# Currency Pulse
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Currency Pulse records EUR-based exchange-rate observations and visualizes them in a React dashboard using repository JSON files.
 
-Currently, two official plugins are available:
+## Data Source
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+The dashboard reads only these files:
 
-## React Compiler
+- `public/data/latest.json`
+- `public/data/history.json`
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Raw snapshots are stored in:
 
-## Expanding the ESLint configuration
+- `data/snapshots/YYYY/MM/DD/*.json`
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+Daily snapshot plans are stored in:
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- `data/plans/YYYY-MM-DD.json`
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## Local Commands
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+- `npm run dev`
+- `npm run build`
+- `npm run lint`
+- `npm run snapshot`
+- `npm run plan:snapshots`
+- `npm run check:snapshot-slot`
+- `npm run complete:snapshot-slot`
 
+PowerShell example for checking a slot locally:
+
+```powershell
+$env:TRIGGER_SCHEDULE = "11 8 * * *"
+npm run check:snapshot-slot
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+To regenerate a local daily plan:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```powershell
+Remove-Item data\plans\YYYY-MM-DD.json
+npm run plan:snapshots
 ```
+
+## Automation
+
+GitHub Actions runs all automation on GitHub servers. Your computer does not need to stay on.
+
+The planner uses a weighted randomizer for daily total snapshot count (1 to 7):
+
+- `1 => 10%`
+- `2 => 15%`
+- `3 => 20%`
+- `4 => 25%`
+- `5 => 15%`
+- `6 => 10%`
+- `7 => 5%`
+
+One real snapshot is always collected during daily planning. Remaining selected slots run throughout the day. Each successful snapshot produces exactly one data commit.
+
+Exchange-rate values can repeat between observations. The project records observations, not guaranteed tick-level market movement.
+
+GitHub cron jobs may execute later than their scheduled minute. Slot matching relies on the triggering cron string, not the exact runtime clock.
+
+All persistent data remains inside the GitHub repository.
+
+```text
+Daily planner
+      ↓
+Random target count
+      ↓
+First snapshot + saved plan
+      ↓
+Scheduled slot checks
+      ↓
+Selected slots collect data
+      ↓
+JSON updated and committed
+      ↓
+Dashboard reads repository data
+```
+
+## Workflows
+
+- `.github/workflows/plan-daily-snapshots.yml`
+  - Runs daily and on manual dispatch.
+  - Creates the Asia/Dhaka daily plan.
+  - Collects the first real snapshot for the day.
+  - Commits plan + snapshot together.
+
+- `.github/workflows/collect-exchange-rate-snapshot.yml`
+  - Runs on seven fixed UTC schedules and manual dispatch.
+  - Checks whether the triggered slot is selected.
+  - Collects snapshot only for selected, not-yet-completed slots.
+  - Marks the slot as completed in the plan.
+  - Commits and pushes generated files.
+
+## Required Repository Setting
+
+Enable write permissions for workflows:
+
+`Settings -> Actions -> General -> Workflow permissions -> Read and write permissions`
+
+## Notes
+
+- Timezone for logical planning date: `Asia/Dhaka`
+- Machine timestamps are ISO-8601 UTC.
+- No API secret is required (Frankfurter free endpoint).

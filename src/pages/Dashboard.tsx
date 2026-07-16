@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { CurrencyConverter } from "../components/CurrencyConverter";
 import { CurrencySelector } from "../components/CurrencySelector";
 import { DashboardHeader } from "../components/DashboardHeader";
@@ -34,18 +34,15 @@ export function Dashboard() {
     [latest, sortedHistory],
   );
 
-  useEffect(() => {
-    if (!availableCurrencies.includes(chartBaseCurrency)) {
-      setChartBaseCurrency(latest.base);
-    }
+  const effectiveChartBaseCurrency = availableCurrencies.includes(chartBaseCurrency)
+    ? chartBaseCurrency
+    : (availableCurrencies[0] ?? latest.base);
 
-    if (!availableCurrencies.includes(chartTargetCurrency)) {
-      const fallback = availableCurrencies.includes("BDT")
+  const effectiveChartTargetCurrency = availableCurrencies.includes(chartTargetCurrency)
+    ? chartTargetCurrency
+    : (availableCurrencies.includes("BDT")
         ? "BDT"
-        : (availableCurrencies[0] ?? latest.base);
-      setChartTargetCurrency(fallback);
-    }
-  }, [availableCurrencies, chartBaseCurrency, chartTargetCurrency, latest.base]);
+        : (availableCurrencies[0] ?? latest.base));
 
   const rangedHistory = useMemo(
     () => filterHistoryByTimeRange(sortedHistory, timeRange),
@@ -56,19 +53,19 @@ export function Dashboard() {
     () =>
       rangedHistory
         .filter((snapshot) => {
-          const hasTarget = typeof snapshot.rates[chartTargetCurrency] === "number";
+          const hasTarget = typeof snapshot.rates[effectiveChartTargetCurrency] === "number";
           const hasBase =
-            chartBaseCurrency === snapshot.base ||
-            typeof snapshot.rates[chartBaseCurrency] === "number";
+            effectiveChartBaseCurrency === snapshot.base ||
+            typeof snapshot.rates[effectiveChartBaseCurrency] === "number";
           return hasTarget && hasBase;
         })
         .map((snapshot) => {
-          if (chartBaseCurrency === snapshot.base) {
+          if (effectiveChartBaseCurrency === snapshot.base) {
             return snapshot;
           }
 
-          const baseRate = snapshot.rates[chartBaseCurrency];
-          const targetRate = snapshot.rates[chartTargetCurrency];
+          const baseRate = snapshot.rates[effectiveChartBaseCurrency];
+          const targetRate = snapshot.rates[effectiveChartTargetCurrency];
 
           if (
             typeof baseRate !== "number" ||
@@ -83,17 +80,17 @@ export function Dashboard() {
             ...snapshot,
             rates: {
               ...snapshot.rates,
-              [chartTargetCurrency]: targetRate / baseRate,
+              [effectiveChartTargetCurrency]: targetRate / baseRate,
             },
           };
         })
         .filter((snapshot) => snapshot !== null),
-    [rangedHistory, chartTargetCurrency, chartBaseCurrency],
+    [rangedHistory, effectiveChartTargetCurrency, effectiveChartBaseCurrency],
   );
 
   const statistics = useMemo(
-    () => computeRateStatistics(chartHistory, chartTargetCurrency),
-    [chartHistory, chartTargetCurrency],
+    () => computeRateStatistics(chartHistory, effectiveChartTargetCurrency),
+    [chartHistory, effectiveChartTargetCurrency],
   );
 
   return (
@@ -124,14 +121,14 @@ export function Dashboard() {
           <CurrencySelector
             id="chart-base"
             label="Base currency"
-            value={chartBaseCurrency}
+            value={effectiveChartBaseCurrency}
             options={availableCurrencies}
             onChange={setChartBaseCurrency}
           />
           <CurrencySelector
             id="chart-target"
             label="Target currency"
-            value={chartTargetCurrency}
+            value={effectiveChartTargetCurrency}
             options={availableCurrencies}
             onChange={setChartTargetCurrency}
           />
@@ -141,20 +138,20 @@ export function Dashboard() {
 
       <ExchangeRateChart
         snapshots={chartHistory}
-        targetCurrency={chartTargetCurrency}
+        targetCurrency={effectiveChartTargetCurrency}
       />
 
       <section className="stats-grid">
         <StatisticsCard
-          title={`Highest rate (${chartTargetCurrency})`}
+          title={`Highest rate (${effectiveChartTargetCurrency})`}
           value={formatRate(statistics.highest ?? undefined)}
         />
         <StatisticsCard
-          title={`Lowest rate (${chartTargetCurrency})`}
+          title={`Lowest rate (${effectiveChartTargetCurrency})`}
           value={formatRate(statistics.lowest ?? undefined)}
         />
         <StatisticsCard
-          title={`Average rate (${chartTargetCurrency})`}
+          title={`Average rate (${effectiveChartTargetCurrency})`}
           value={formatRate(statistics.average ?? undefined)}
         />
         <StatisticsCard

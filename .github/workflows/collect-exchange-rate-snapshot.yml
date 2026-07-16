@@ -1,0 +1,103 @@
+name: Collect Exchange Rate Snapshot
+
+on:
+  schedule:
+    - cron: "17 1 * * *"
+    - cron: "43 4 * * *"
+    - cron: "11 8 * * *"
+    - cron: "37 11 * * *"
+    - cron: "19 15 * * *"
+    - cron: "47 18 * * *"
+    - cron: "23 21 * * *"
+  workflow_dispatch:
+    inputs:
+      schedule:
+        description: "Cron schedule to simulate"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: currency-pulse-data-writes
+  cancel-in-progress: false
+
+jobs:
+  check-and-collect:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Resolve trigger schedule
+        id: trigger
+        run: |
+          RESOLVED_SCHEDULE="${{ github.event.schedule || inputs.schedule }}"
+          echo "schedule=${RESOLVED_SCHEDULE}" >> "$GITHUB_OUTPUT"
+          echo "Resolved trigger schedule: ${RESOLVED_SCHEDULE}"
+
+      - name: Check slot selection
+        id: check
+        env:
+          TRIGGER_SCHEDULE: ${{ steps.trigger.outputs.schedule }}
+        run: npm run check:snapshot-slot
+
+      - name: Skip non-selected slot
+        if: steps.check.outputs.selected != 'true'
+        run: |
+          echo "Slot selected: false"
+          echo "Reason: ${{ steps.check.outputs.reason }}"
+
+      - name: Collect selected slot snapshot
+        if: steps.check.outputs.selected == 'true'
+        id: collect
+        env:
+          SNAPSHOT_PLAN_DATE: ${{ steps.check.outputs.planDate }}
+          SNAPSHOT_SLOT_ID: ${{ steps.check.outputs.slotId }}
+        run: npm run snapshot
+
+      - name: Mark slot completed
+        if: steps.check.outputs.selected == 'true'
+        env:
+          SNAPSHOT_PLAN_DATE: ${{ steps.check.outputs.planDate }}
+          SNAPSHOT_SLOT_ID: ${{ steps.check.outputs.slotId }}
+          SNAPSHOT_PATH: ${{ steps.collect.outputs.snapshotPath }}
+        run: npm run complete:snapshot-slot
+
+      - name: Commit and push generated data
+        if: steps.check.outputs.selected == 'true'
+        env:
+          SLOT_ID: ${{ steps.check.outputs.slotId }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git pull --rebase origin "${DEFAULT_BRANCH}"
+
+          git add data/plans data/snapshots public/data
+
+          if git diff --cached --quiet; then
+            echo "No generated changes to commit."
+            exit 0
+          fi
+
+          git commit -m "data: record exchange rates at ${SLOT_ID}"
+
+          git push origin "HEAD:${DEFAULT_BRANCH}" || {
+            git pull --rebase origin "${DEFAULT_BRANCH}"
+            git push origin "HEAD:${DEFAULT_BRANCH}"
+          }

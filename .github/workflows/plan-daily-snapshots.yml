@@ -1,0 +1,67 @@
+name: Plan Daily Snapshots
+
+on:
+  schedule:
+    - cron: "10 18 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: currency-pulse-data-writes
+  cancel-in-progress: false
+
+jobs:
+  plan-and-snapshot:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Create daily plan
+        id: plan
+        run: npm run plan:snapshots
+
+      - name: Collect planner snapshot
+        if: steps.plan.outputs.created == 'true'
+        env:
+          SNAPSHOT_PLAN_DATE: ${{ steps.plan.outputs.planDate }}
+        run: npm run snapshot
+
+      - name: Commit and push generated data
+        if: steps.plan.outputs.created == 'true'
+        env:
+          PLAN_DATE: ${{ steps.plan.outputs.planDate }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git pull --rebase origin "${DEFAULT_BRANCH}"
+
+          git add data/plans data/snapshots public/data
+
+          if git diff --cached --quiet; then
+            echo "No generated changes to commit."
+            exit 0
+          fi
+
+          git commit -m "data: start exchange-rate observations for ${PLAN_DATE}"
+
+          git push origin "HEAD:${DEFAULT_BRANCH}" || {
+            git pull --rebase origin "${DEFAULT_BRANCH}"
+            git push origin "HEAD:${DEFAULT_BRANCH}"
+          }

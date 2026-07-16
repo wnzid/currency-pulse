@@ -8,7 +8,10 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "snapshot": "tsx scripts/collectSnapshot.ts"
+    "snapshot": "tsx scripts/collectSnapshot.ts",
+    "plan:snapshots": "tsx scripts/createDailyPlan.ts",
+    "check:snapshot-slot": "tsx scripts/checkSnapshotSlot.ts",
+    "complete:snapshot-slot": "tsx scripts/completeSnapshotSlot.ts"
   },
   "dependencies": {
     "date-fns": "^4.4.0",

@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "date": "2026-07-17",
+  "timezone": "Asia/Dhaka",
+  "createdAt": "2026-07-16T20:59:24.863Z",
+  "snapshotCount": 6,
+  "plannerSnapshotIncluded": true,
+  "selectedSlots": [
+    {
+      "id": "slot-01",
+      "cron": "17 1 * * *",
+      "utcTime": "01:17"
+    },
+    {
+      "id": "slot-03",
+      "cron": "11 8 * * *",
+      "utcTime": "08:11"
+    },
+    {
+      "id": "slot-04",
+      "cron": "37 11 * * *",
+      "utcTime": "11:37"
+    },
+    {
+      "id": "slot-06",
+      "cron": "47 18 * * *",
+      "utcTime": "18:47"
+    },
+    {
+      "id": "slot-07",
+      "cron": "23 21 * * *",
+      "utcTime": "21:23"
+    }
+  ],
+  "completedSlots": [
+    {
+      "slotId": "slot-03",
+      "completedAt": "2026-07-16T20:59:32.698Z",
+      "snapshotPath": "data/snapshots/2026/07/17/test-manual.json"
+    }
+  ]
+}
