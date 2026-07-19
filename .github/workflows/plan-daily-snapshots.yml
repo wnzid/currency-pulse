@@ -47,8 +47,8 @@ jobs:
           PLAN_DATE: ${{ steps.plan.outputs.planDate }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "wnzid"
+          git config user.email "183149325+wnzid@users.noreply.github.com"
 
           git add data/plans data/snapshots public/data
 
