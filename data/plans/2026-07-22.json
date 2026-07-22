@@ -32,6 +32,11 @@
       "slotId": "slot-01",
       "completedAt": "2026-07-22T04:36:34.785Z",
       "snapshotPath": "data/snapshots/2026/07/22/2026-07-22T04-36-34-435Z-8970.json"
+    },
+    {
+      "slotId": "slot-05",
+      "completedAt": "2026-07-22T16:46:39.935Z",
+      "snapshotPath": "data/snapshots/2026/07/22/2026-07-22T16-46-39-571Z-3763.json"
     }
   ]
 }
