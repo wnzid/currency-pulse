@@ -1935,5 +1935,24 @@
       "planDate": "2026-08-12",
       "slotId": "slot-04"
     }
+  },
+  {
+    "observedAt": "2026-08-12T16:09:15.697Z",
+    "rateDate": "2026-08-12",
+    "base": "EUR",
+    "rates": {
+      "AUD": 1.6327,
+      "CAD": 1.6077,
+      "CHF": 0.9366,
+      "GBP": 0.85358,
+      "JPY": 183.67,
+      "USD": 1.1545
+    },
+    "source": "Frankfurter",
+    "collection": {
+      "environment": "github-actions",
+      "planDate": "2026-08-12",
+      "slotId": "slot-05"
+    }
   }
 ]
