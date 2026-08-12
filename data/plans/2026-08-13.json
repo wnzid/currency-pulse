@@ -37,5 +37,11 @@
       "utcTime": "21:23"
     }
   ],
-  "completedSlots": []
+  "completedSlots": [
+    {
+      "slotId": "slot-06",
+      "completedAt": "2026-08-12T19:47:52.842Z",
+      "snapshotPath": "data/snapshots/2026/08/12/2026-08-12T19-47-52-516Z-7118.json"
+    }
+  ]
 }
