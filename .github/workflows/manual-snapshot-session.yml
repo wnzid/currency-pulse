@@ -1,0 +1,121 @@
+name: Run Manual Snapshot Session
+
+on:
+  workflow_dispatch:
+    inputs:
+      duration_minutes:
+        description: "Total session duration in minutes (1-300)"
+        required: true
+        default: "15"
+        type: string
+      commit_count:
+        description: "Number of snapshot commits (1-60)"
+        required: true
+        default: "15"
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: currency-pulse-data-writes
+  cancel-in-progress: false
+
+jobs:
+  collect-session:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    env:
+      DURATION_MINUTES: ${{ inputs.duration_minutes }}
+      COMMIT_COUNT: ${{ inputs.commit_count }}
+      DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+
+    steps:
+      - name: Validate session settings
+        run: |
+          if [[ ! "$DURATION_MINUTES" =~ ^[0-9]+$ ]]; then
+            echo "duration_minutes must be a whole number from 1 to 300."
+            exit 1
+          fi
+
+          if [[ ! "$COMMIT_COUNT" =~ ^[0-9]+$ ]]; then
+            echo "commit_count must be a whole number from 1 to 60."
+            exit 1
+          fi
+
+          DURATION_VALUE=$((10#$DURATION_MINUTES))
+          COMMIT_VALUE=$((10#$COMMIT_COUNT))
+
+          if (( DURATION_VALUE < 1 || DURATION_VALUE > 300 )); then
+            echo "duration_minutes must be from 1 to 300."
+            exit 1
+          fi
+
+          if (( COMMIT_VALUE < 1 || COMMIT_VALUE > 60 )); then
+            echo "commit_count must be from 1 to 60."
+            exit 1
+          fi
+
+      - name: Checkout default branch
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Configure commit author
+        run: |
+          git config user.name "wnzid"
+          git config user.email "183149325+wnzid@users.noreply.github.com"
+
+      - name: Collect evenly spaced snapshots
+        run: |
+          DURATION_VALUE=$((10#$DURATION_MINUTES))
+          COMMIT_VALUE=$((10#$COMMIT_COUNT))
+          SESSION_START=$(date +%s)
+          TOTAL_SECONDS=$((DURATION_VALUE * 60))
+
+          echo "Collecting $COMMIT_VALUE snapshots across $DURATION_VALUE minutes."
+          echo "Commits stay on the runner until the session finishes."
+
+          for ((INDEX = 1; INDEX <= COMMIT_VALUE; INDEX++)); do
+            echo "Collecting snapshot $INDEX of $COMMIT_VALUE..."
+            npm run snapshot
+
+            git add data/snapshots public/data
+
+            if git diff --cached --quiet; then
+              echo "Snapshot $INDEX produced no generated changes."
+              exit 1
+            fi
+
+            git commit -m "data: record manual snapshot $INDEX/$COMMIT_VALUE"
+
+            if (( INDEX < COMMIT_VALUE )); then
+              NEXT_TARGET=$((SESSION_START + (INDEX * TOTAL_SECONDS) / (COMMIT_VALUE - 1)))
+
+              NOW=$(date +%s)
+              WAIT_SECONDS=$((NEXT_TARGET - NOW))
+
+              if (( WAIT_SECONDS > 0 )); then
+                echo "Waiting $WAIT_SECONDS seconds for the next evenly spaced snapshot..."
+                sleep "$WAIT_SECONDS"
+              fi
+            fi
+          done
+
+      - name: Push completed snapshot session
+        run: |
+          git pull --rebase origin "$DEFAULT_BRANCH"
+          git push origin "HEAD:$DEFAULT_BRANCH"
+
+          echo "Pushed $COMMIT_COUNT commits in one update."
+          echo "The completed manual session will trigger one Pages deployment."

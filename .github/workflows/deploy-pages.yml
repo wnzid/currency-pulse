@@ -18,6 +18,7 @@ on:
     workflows:
       - Collect Exchange Rate Snapshot
       - Plan Daily Snapshots
+      - Run Manual Snapshot Session
     types:
       - completed
   workflow_dispatch:
