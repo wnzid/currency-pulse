@@ -3,7 +3,6 @@ import { randomInt } from "node:crypto";
 import path from "node:path";
 
 interface FrankfurterResponse {
-  amount: number;
   base: string;
   date: string;
   rates: Record<string, number>;
@@ -23,7 +22,7 @@ interface ExchangeRateSnapshot {
 }
 
 const API_URL =
-  "https://api.frankfurter.dev/v1/latest?base=EUR&symbols=USD,GBP,AUD,BDT,CAD,CHF,JPY";
+  "https://api.frankfurter.dev/v2/rates?base=EUR&quotes=USD,GBP,AUD,BDT,CAD,CHF,JPY";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -44,30 +43,53 @@ function normalizeRates(value: unknown): Record<string, number> {
 }
 
 function parseFrankfurterResponse(value: unknown): FrankfurterResponse | null {
-  if (!isRecord(value)) {
+  if (!Array.isArray(value) || value.length === 0) {
     return null;
   }
 
-  const amount = value.amount;
-  const base = value.base;
-  const date = value.date;
-  const rates = normalizeRates(value.rates);
+  let base: string | undefined;
+  let latestDate: string | undefined;
+  const rates: Record<string, number> = {};
 
-  if (
-    typeof amount !== "number" ||
-    !Number.isFinite(amount) ||
-    typeof base !== "string" ||
-    base.length === 0 ||
-    typeof date !== "string" ||
-    !/^\d{4}-\d{2}-\d{2}$/.test(date)
-  ) {
+  for (const entry of value) {
+    if (!isRecord(entry)) {
+      return null;
+    }
+
+    const entryBase = entry.base;
+    const quote = entry.quote;
+    const date = entry.date;
+    const rate = entry.rate;
+
+    if (
+      typeof entryBase !== "string" ||
+      entryBase.length === 0 ||
+      typeof quote !== "string" ||
+      quote.length === 0 ||
+      typeof date !== "string" ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(date) ||
+      typeof rate !== "number" ||
+      !Number.isFinite(rate)
+    ) {
+      return null;
+    }
+
+    if (base !== undefined && base !== entryBase) {
+      return null;
+    }
+
+    base = entryBase;
+    rates[quote] = rate;
+    latestDate = latestDate === undefined || date > latestDate ? date : latestDate;
+  }
+
+  if (base === undefined || latestDate === undefined) {
     return null;
   }
 
   return {
-    amount,
     base,
-    date,
+    date: latestDate,
     rates,
   };
 }
