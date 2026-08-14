@@ -108,12 +108,12 @@ export function ExchangeRateChart({
             <YAxis
               domain={yAxisDomain}
               stroke="var(--text-muted)"
-              width={118}
+              width={82}
               tickLine={false}
               axisLine={false}
               tickCount={5}
               orientation="right"
-              tickFormatter={(value: number) => `${targetCurrency} ${value.toFixed(tickPrecision)}`}
+              tickFormatter={(value: number) => value.toFixed(tickPrecision)}
             />
             <Tooltip
               formatter={(value) => [formatRate(typeof value === "number" ? value : undefined), targetCurrency]}
