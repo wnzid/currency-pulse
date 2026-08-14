@@ -6,7 +6,6 @@ import { ExchangeRateChart } from "../components/ExchangeRateChart";
 import { RateCard } from "../components/RateCard";
 import { SnapshotTable } from "../components/SnapshotTable";
 import { StatisticsCard } from "../components/StatisticsCard";
-import { TimeRangeSelector } from "../components/TimeRangeSelector";
 import { useExchangeRates } from "../hooks/useExchangeRates";
 import type { TimeRangeValue } from "../types/exchange";
 import {
@@ -105,6 +104,11 @@ export function Dashboard() {
         </section>
       ) : null}
 
+      <CurrencyConverter latest={latest} currencies={availableCurrencies} />
+
+      <div className="section-label">
+        <span>01</span><h2>Market board</h2><p>Latest rates against {latest.base}</p>
+      </div>
       <section className="rates-grid">
         {TRACKED_CURRENCIES.map((currency) => (
           <RateCard
@@ -116,6 +120,9 @@ export function Dashboard() {
         ))}
       </section>
 
+      <div className="section-label">
+        <span>02</span><h2>Rate explorer</h2><p>Choose a pair and timeframe</p>
+      </div>
       <section className="card controls-card">
         <div className="controls-grid">
           <CurrencySelector
@@ -133,12 +140,14 @@ export function Dashboard() {
             onChange={setChartTargetCurrency}
           />
         </div>
-        <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
       </section>
 
       <ExchangeRateChart
         snapshots={chartHistory}
+        baseCurrency={effectiveChartBaseCurrency}
         targetCurrency={effectiveChartTargetCurrency}
+        timeRange={timeRange}
+        onTimeRangeChange={setTimeRange}
       />
 
       <section className="stats-grid">
@@ -168,7 +177,10 @@ export function Dashboard() {
         />
       </section>
 
-      <section className="latest-grid">
+      <div className="section-label">
+        <span>03</span><h2>Data records</h2><p>Inspect the latest source snapshot</p>
+      </div>
+      <section className="records-grid">
         <article className="card latest-card">
           <h2>Latest snapshot</h2>
           <dl>
@@ -194,11 +206,8 @@ export function Dashboard() {
             </div>
           </dl>
         </article>
-
-        <CurrencyConverter latest={latest} currencies={availableCurrencies} />
+        <SnapshotTable history={sortedHistory} trackedCurrencies={TRACKED_CURRENCIES} />
       </section>
-
-      <SnapshotTable history={sortedHistory} trackedCurrencies={TRACKED_CURRENCIES} />
     </main>
   );
 }

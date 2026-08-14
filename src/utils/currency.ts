@@ -108,8 +108,16 @@ export function filterHistoryByTimeRange(
     return snapshots;
   }
 
-  const now = Date.now();
-  const threshold = now - RANGE_TO_MS[timeRange];
+  const latestTimestamp = snapshots.reduce((latest, snapshot) => {
+    const timestamp = new Date(snapshot.observedAt).getTime();
+    return Number.isFinite(timestamp) ? Math.max(latest, timestamp) : latest;
+  }, Number.NEGATIVE_INFINITY);
+
+  if (!Number.isFinite(latestTimestamp)) {
+    return [];
+  }
+
+  const threshold = latestTimestamp - RANGE_TO_MS[timeRange];
 
   return snapshots.filter((snapshot) => {
     const timestamp = new Date(snapshot.observedAt).getTime();
