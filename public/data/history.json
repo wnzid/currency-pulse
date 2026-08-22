@@ -3314,5 +3314,24 @@
       "environment": "github-actions",
       "planDate": "2026-08-22"
     }
+  },
+  {
+    "observedAt": "2026-08-22T18:46:23.232Z",
+    "rateDate": "2026-08-22",
+    "base": "EUR",
+    "rates": {
+      "AUD": 1.6392,
+      "BDT": 142.68,
+      "CAD": 1.6101,
+      "CHF": 0.93539,
+      "GBP": 0.85726,
+      "JPY": 185.64,
+      "USD": 1.1688
+    },
+    "source": "Frankfurter",
+    "collection": {
+      "environment": "github-actions",
+      "planDate": "2026-08-23"
+    }
   }
 ]
