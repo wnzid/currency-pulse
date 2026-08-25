@@ -3670,5 +3670,25 @@
       "environment": "github-actions",
       "planDate": "2026-08-26"
     }
+  },
+  {
+    "observedAt": "2026-08-25T19:17:39.567Z",
+    "rateDate": "2026-08-25",
+    "base": "EUR",
+    "rates": {
+      "AUD": 1.6323,
+      "BDT": 143.23,
+      "CAD": 1.6147,
+      "CHF": 0.93638,
+      "GBP": 0.8564,
+      "JPY": 185.85,
+      "USD": 1.1672
+    },
+    "source": "Frankfurter",
+    "collection": {
+      "environment": "github-actions",
+      "planDate": "2026-08-26",
+      "slotId": "slot-06"
+    }
   }
 ]
