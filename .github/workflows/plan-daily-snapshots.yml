@@ -2,7 +2,7 @@ name: Plan Daily Snapshots
 
 on:
   schedule:
-    - cron: "10 18 * * *"
+    - cron: "10 18 * * 1-5"
   workflow_dispatch:
 
 permissions:

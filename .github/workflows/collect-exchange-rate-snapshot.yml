@@ -2,13 +2,13 @@ name: Collect Exchange Rate Snapshot
 
 on:
   schedule:
-    - cron: "17 1 * * *"
-    - cron: "43 4 * * *"
-    - cron: "11 8 * * *"
-    - cron: "37 11 * * *"
-    - cron: "19 15 * * *"
-    - cron: "47 18 * * *"
-    - cron: "23 21 * * *"
+    - cron: "17 1 * * 1-5"
+    - cron: "43 4 * * 1-5"
+    - cron: "11 8 * * 1-5"
+    - cron: "37 11 * * 1-5"
+    - cron: "19 15 * * 1-5"
+    - cron: "47 18 * * 1-5"
+    - cron: "23 21 * * 1-5"
   workflow_dispatch:
     inputs:
       schedule:
@@ -46,6 +46,9 @@ jobs:
         id: trigger
         run: |
           RESOLVED_SCHEDULE="${{ github.event.schedule || inputs.schedule }}"
+          if [[ "${{ github.event_name }}" == "schedule" ]]; then
+            RESOLVED_SCHEDULE="${RESOLVED_SCHEDULE% 1-5} *"
+          fi
           echo "schedule=${RESOLVED_SCHEDULE}" >> "$GITHUB_OUTPUT"
           echo "Resolved trigger schedule: ${RESOLVED_SCHEDULE}"
 
