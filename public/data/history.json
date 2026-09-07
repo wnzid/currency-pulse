@@ -5037,5 +5037,23 @@
     "collection": {
       "environment": "github-actions"
     }
+  },
+  {
+    "observedAt": "2026-09-07T16:16:30.764Z",
+    "rateDate": "2026-09-07",
+    "base": "EUR",
+    "rates": {
+      "AUD": 1.6145,
+      "BDT": 142.7,
+      "CAD": 1.6066,
+      "CHF": 0.94079,
+      "GBP": 0.85938,
+      "JPY": 181.28,
+      "USD": 1.1624
+    },
+    "source": "Frankfurter",
+    "collection": {
+      "environment": "github-actions"
+    }
   }
 ]
