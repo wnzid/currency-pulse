@@ -33,7 +33,7 @@ export const SNAPSHOT_SLOTS = [
   { id: "slot-04", cron: "37 11 * * *", utcTime: "11:37" },
   { id: "slot-05", cron: "19 15 * * *", utcTime: "15:19" },
   { id: "slot-06", cron: "47 18 * * *", utcTime: "18:47" },
-  { id: "slot-07", cron: "23 21 * * *", utcTime: "21:23" },
+  { id: "slot-07", cron: "23 20 * * *", utcTime: "20:23" },
 ] as const satisfies readonly SnapshotSlot[];
 
 const WEIGHTED_SNAPSHOT_COUNTS = [

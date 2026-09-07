@@ -8,7 +8,7 @@ on:
     - cron: "37 11 * * 1-5"
     - cron: "19 15 * * 1-5"
     - cron: "47 18 * * 1-5"
-    - cron: "23 21 * * 1-5"
+    - cron: "23 20 * * 1-5"
   workflow_dispatch:
     inputs:
       schedule:
@@ -47,7 +47,7 @@ jobs:
         run: |
           RESOLVED_SCHEDULE="${{ github.event.schedule || inputs.schedule }}"
           if [[ "${{ github.event_name }}" == "schedule" ]]; then
-            RESOLVED_SCHEDULE="${RESOLVED_SCHEDULE% 1-5} *"
+            RESOLVED_SCHEDULE="${RESOLVED_SCHEDULE% *} *"
           fi
           echo "schedule=${RESOLVED_SCHEDULE}" >> "$GITHUB_OUTPUT"
           echo "Resolved trigger schedule: ${RESOLVED_SCHEDULE}"

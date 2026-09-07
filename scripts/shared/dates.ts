@@ -1,4 +1,4 @@
-export const APPLICATION_TIMEZONE = "Asia/Dhaka";
+export const APPLICATION_TIMEZONE = "Europe/Vilnius";
 
 export interface TimeZoneDateParts {
   year: string;
