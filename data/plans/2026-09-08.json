@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "date": "2026-09-08",
+  "timezone": "Europe/Vilnius",
+  "createdAt": "2026-09-08T04:24:07.041Z",
+  "snapshotCount": 2,
+  "plannerSnapshotIncluded": true,
+  "selectedSlots": [
+    {
+      "id": "slot-06",
+      "cron": "47 18 * * *",
+      "utcTime": "18:47"
+    }
+  ],
+  "completedSlots": []
+}
