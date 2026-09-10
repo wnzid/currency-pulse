@@ -91,6 +91,26 @@ export function normalizeHistory(value: unknown): ExchangeRateSnapshot[] {
     .filter((snapshot) => snapshot.observedAt.length > 0);
 }
 
+export function resolveLatestSnapshot(
+  latest: LatestSnapshotData,
+  history: ExchangeRateSnapshot[],
+): LatestSnapshotData {
+  const latestTimestamp = latest.observedAt
+    ? new Date(latest.observedAt).getTime()
+    : Number.NEGATIVE_INFINITY;
+
+  return history.reduce<LatestSnapshotData>((newest, snapshot) => {
+    const snapshotTimestamp = new Date(snapshot.observedAt).getTime();
+    const newestTimestamp = newest.observedAt
+      ? new Date(newest.observedAt).getTime()
+      : Number.NEGATIVE_INFINITY;
+
+    return Number.isFinite(snapshotTimestamp) && snapshotTimestamp > newestTimestamp
+      ? snapshot
+      : newest;
+  }, Number.isFinite(latestTimestamp) ? latest : EMPTY_LATEST);
+}
+
 export function sortSnapshotsAscending(
   snapshots: ExchangeRateSnapshot[],
 ): ExchangeRateSnapshot[] {

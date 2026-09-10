@@ -1,21 +1,75 @@
 # Currency Pulse
 
-Currency Pulse records EUR-based exchange-rate observations and visualizes them in a React dashboard using repository JSON files.
+Currency Pulse records EUR-based exchange-rate observations and visualizes them in a React dashboard. The application, collector code, and GitHub Pages site live in this repository; generated runtime data lives in a persistent GitHub Release instead of Git history.
 
-## Data Source
+## Architecture
 
-The dashboard reads only these files:
+```text
+Frankfurter API
+      ↓
+Scheduled GitHub Actions collectors
+      ↓
+GitHub Release tagged data-live
+  ├── latest.json
+  ├── history.json
+  └── plan.json
+      ↓
+GitHub Pages deployment stages latest.json + history.json
+      ↓
+Static dashboard
+```
 
-- `public/data/latest.json`
-- `public/data/history.json`
+No external database or paid service is required. A normal collection run replaces release assets and triggers a Pages deployment without creating a source commit. Git history therefore records engineering changes rather than routine observations.
 
-Raw snapshots are stored in:
+The committed files in `public/data` and the existing `data` directory are retained as bootstrap data and local-development fixtures. Scheduled workflows seed the first `data-live` release from them, then restore and update the release assets on later runs.
 
-- `data/snapshots/YYYY/MM/DD/*.json`
+## Live Data
 
-Daily snapshot plans are stored in:
+- `latest.json` contains the newest observation.
+- `history.json` contains the observation history used by charts, statistics, and the table.
+- `plan.json` contains the active daily randomized collection plan and completed-slot state.
 
-- `data/plans/YYYY-MM-DD.json`
+GitHub Release downloads are not a reliable cross-origin browser API, so the deployment workflow downloads `latest.json` and `history.json` from the release before building the same-origin static site. The dashboard also compares `latest.json` with the newest valid history entry so the displayed latest observation cannot remain behind a newer history record.
+
+## Scheduling
+
+Automation runs on GitHub-hosted runners, so no local computer needs to remain online. Planning and collection use the `Europe/Vilnius` logical date.
+
+The daily planner and all seven collection slots run every day, including Saturday and Sunday. The planner uses this weighted random distribution for a daily total of 1 to 7 observations:
+
+- `1 => 10%`
+- `2 => 15%`
+- `3 => 20%`
+- `4 => 25%`
+- `5 => 15%`
+- `6 => 10%`
+- `7 => 5%`
+
+The planner collects the first observation. Remaining selected slots are spread across the day. A shared Actions concurrency group serializes all runtime-data updates so two collectors cannot overwrite each other.
+
+GitHub cron jobs may start later than their scheduled minute. Slot matching therefore uses the triggering cron string rather than the runner's exact start time.
+
+## Workflows
+
+- `.github/workflows/plan-daily-snapshots.yml`
+  - Runs every day and by manual dispatch.
+  - Restores the live history and current plan from `data-live`.
+  - Creates the day's randomized plan and first observation.
+  - Replaces the three live release assets.
+
+- `.github/workflows/collect-exchange-rate-snapshot.yml`
+  - Runs at the existing seven UTC slots every day and by manual dispatch.
+  - Restores `plan.json`, checks whether the triggering slot is selected and incomplete, and skips cleanly when it is not.
+  - Collects selected observations, records completion, and replaces the live assets.
+
+- `.github/workflows/manual-snapshot-session.yml`
+  - Collects a requested number of evenly spaced observations.
+  - Publishes the finished latest/history data once, without creating commits.
+
+- `.github/workflows/deploy-pages.yml`
+  - Runs for frontend/configuration changes, successful collector workflow completions, and manual dispatches.
+  - Downloads current release data into the Pages build without modifying the checked-out repository or creating a commit.
+  - Lints, builds, verifies, and deploys the static dashboard.
 
 ## Local Commands
 
@@ -26,6 +80,8 @@ Daily snapshot plans are stored in:
 - `npm run plan:snapshots`
 - `npm run check:snapshot-slot`
 - `npm run complete:snapshot-slot`
+
+Local commands continue to use `public/data`, `data/snapshots`, and `data/plans` by default. Workflows redirect those outputs into runner-only directories with `SNAPSHOT_DATA_DIRECTORY`, `SNAPSHOT_ARCHIVE_DIRECTORY`, and `SNAPSHOT_PLAN_DIRECTORY`.
 
 PowerShell example for checking a slot locally:
 
@@ -41,119 +97,16 @@ Remove-Item data\plans\YYYY-MM-DD.json
 npm run plan:snapshots
 ```
 
-## Automation
-
-GitHub Actions runs all automation on GitHub servers. Your computer does not need to stay on.
-
-The planner uses a weighted randomizer for daily total snapshot count (1 to 7):
-
-- `1 => 10%`
-- `2 => 15%`
-- `3 => 20%`
-- `4 => 25%`
-- `5 => 15%`
-- `6 => 10%`
-- `7 => 5%`
-
-One real snapshot is always collected during daily planning. Remaining selected slots run throughout the day. Each successful snapshot produces exactly one data commit.
-
-Exchange-rate values can repeat between observations. The project records observations, not guaranteed tick-level market movement.
-
-GitHub cron jobs may execute later than their scheduled minute. Slot matching relies on the triggering cron string, not the exact runtime clock.
-
-All persistent data remains inside the GitHub repository.
-
-```text
-Daily planner
-      ↓
-Random target count
-      ↓
-First snapshot + saved plan
-      ↓
-Scheduled slot checks
-      ↓
-Selected slots collect data
-      ↓
-JSON updated and committed
-      ↓
-Dashboard reads repository data
-```
-
-## Workflows
-
-- `.github/workflows/plan-daily-snapshots.yml`
-  - Runs daily and on manual dispatch.
-  - Creates the Asia/Dhaka daily plan.
-  - Collects the first real snapshot for the day.
-  - Commits plan + snapshot together.
-
-- `.github/workflows/collect-exchange-rate-snapshot.yml`
-  - Runs on seven fixed UTC schedules and manual dispatch.
-  - Checks whether the triggered slot is selected.
-  - Collects snapshot only for selected, not-yet-completed slots.
-  - Marks the slot as completed in the plan.
-  - Commits and pushes generated files.
-
-- `.github/workflows/deploy-pages.yml`
-  - Runs on pushes to `main` for relevant frontend and public data paths.
-  - Runs lint, builds the React dashboard, verifies `dist` files, and deploys via GitHub Pages artifact workflow actions.
-  - Uses `contents: read`, `pages: write`, and `id-token: write` only.
-
 ## Deployment
 
-### Live Dashboard
+Enable GitHub Pages with `Settings -> Pages -> Build and deployment -> Source -> GitHub Actions`.
 
-Expected project Pages URL:
+The collector workflows require the repository's standard Actions `contents: write` permission so they can create and replace release assets. The Pages workflow remains read-only for repository contents and has only the additional `pages: write` and `id-token: write` permissions needed for deployment.
 
-`https://<github-username>.github.io/currency-pulse/`
-
-### Deployment Process
+Expected Pages URL:
 
 ```text
-Snapshot committed
-      ↓
-Pages workflow starts
-      ↓
-React app builds
-      ↓
-Stored JSON copied into dist
-      ↓
-Artifact uploaded
-      ↓
-GitHub Pages deploys
+https://<github-username>.github.io/currency-pulse/
 ```
 
-### Repository Setting
-
-Enable GitHub Pages from Actions:
-
-`Settings -> Pages -> Build and deployment -> Source -> GitHub Actions`
-
-### Local Production Test
-
-```bash
-npm run build
-npm run preview
-```
-
-Local preview serves the production build output.
-
-### Data Source in Deployment
-
-- The deployed dashboard reads committed JSON files from `public/data` (copied to `dist/data`).
-- No backend or database is required.
-- The latest successful deployment includes the latest committed dataset.
-- Deployment usually follows shortly after a snapshot commit.
-- Your local computer does not need to be running for deployment.
-
-## Required Repository Setting
-
-Enable write permissions for workflows:
-
-`Settings -> Actions -> General -> Workflow permissions -> Read and write permissions`
-
-## Notes
-
-- Timezone for logical planning date: `Asia/Dhaka`
-- Machine timestamps are ISO-8601 UTC.
-- No API secret is required (Frankfurter free endpoint).
+No API secret is required; observations come from the free Frankfurter endpoint.

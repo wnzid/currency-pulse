@@ -47,7 +47,9 @@ const WEIGHTED_SNAPSHOT_COUNTS = [
 ] as const;
 
 export function getPlanPathForDate(date: string): string {
-  return path.join("data", "plans", `${date}.json`);
+  const planDirectory =
+    process.env.SNAPSHOT_PLAN_DIRECTORY ?? path.join("data", "plans");
+  return path.join(planDirectory, `${date}.json`);
 }
 
 export async function writeJsonWithTrailingNewline(

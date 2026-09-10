@@ -213,14 +213,14 @@ async function collectSnapshot(): Promise<void> {
   const snapshotFileName = `${safeTimestamp}-${randomSuffix}.json`;
 
   const snapshotDirectory = path.join(
-    "data",
-    "snapshots",
+    process.env.SNAPSHOT_ARCHIVE_DIRECTORY ?? path.join("data", "snapshots"),
     year,
     month,
     day,
   );
 
-  const publicDataDirectory = path.join("public", "data");
+  const publicDataDirectory =
+    process.env.SNAPSHOT_DATA_DIRECTORY ?? path.join("public", "data");
   const historyPath = path.join(publicDataDirectory, "history.json");
 
   await mkdir(snapshotDirectory, { recursive: true });

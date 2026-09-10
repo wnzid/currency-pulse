@@ -2,13 +2,13 @@ name: Collect Exchange Rate Snapshot
 
 on:
   schedule:
-    - cron: "17 1 * * 1-5"
-    - cron: "43 4 * * 1-5"
-    - cron: "11 8 * * 1-5"
-    - cron: "37 11 * * 1-5"
-    - cron: "19 15 * * 1-5"
-    - cron: "47 18 * * 1-5"
-    - cron: "23 20 * * 1-5"
+    - cron: "17 1 * * *"
+    - cron: "43 4 * * *"
+    - cron: "11 8 * * *"
+    - cron: "37 11 * * *"
+    - cron: "19 15 * * *"
+    - cron: "47 18 * * *"
+    - cron: "23 20 * * *"
   workflow_dispatch:
     inputs:
       schedule:
@@ -26,12 +26,15 @@ concurrency:
 jobs:
   check-and-collect:
     runs-on: ubuntu-latest
+    env:
+      DATA_RELEASE_TAG: data-live
+      SNAPSHOT_DATA_DIRECTORY: .runtime/data
+      SNAPSHOT_PLAN_DIRECTORY: .runtime/plans
+      SNAPSHOT_ARCHIVE_DIRECTORY: .runtime/snapshots
 
     steps:
       - name: Checkout
         uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
@@ -41,6 +44,39 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Restore live runtime data
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p "$SNAPSHOT_DATA_DIRECTORY" "$SNAPSHOT_PLAN_DIRECTORY" .release-download
+
+          if gh release view "$DATA_RELEASE_TAG" >/dev/null 2>&1; then
+            gh release download "$DATA_RELEASE_TAG" --pattern latest.json --dir .release-download
+            gh release download "$DATA_RELEASE_TAG" --pattern history.json --dir .release-download
+            gh release download "$DATA_RELEASE_TAG" --pattern plan.json --dir .release-download || true
+          fi
+
+          cp public/data/latest.json "$SNAPSHOT_DATA_DIRECTORY/latest.json"
+          cp public/data/history.json "$SNAPSHOT_DATA_DIRECTORY/history.json"
+
+          FALLBACK_PLAN=$(find data/plans -type f -name '*.json' | sort | tail -n 1)
+          if [[ -n "$FALLBACK_PLAN" ]]; then
+            cp "$FALLBACK_PLAN" "$SNAPSHOT_PLAN_DIRECTORY/$(basename "$FALLBACK_PLAN")"
+          fi
+
+          if [[ -f .release-download/latest.json ]]; then
+            cp .release-download/latest.json "$SNAPSHOT_DATA_DIRECTORY/latest.json"
+          fi
+
+          if [[ -f .release-download/history.json ]]; then
+            cp .release-download/history.json "$SNAPSHOT_DATA_DIRECTORY/history.json"
+          fi
+
+          if [[ -f .release-download/plan.json ]]; then
+            PLAN_DATE=$(node -e "const p=require('./.release-download/plan.json'); if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(p.date ?? '')) process.exit(1); process.stdout.write(p.date)")
+            cp .release-download/plan.json "$SNAPSHOT_PLAN_DIRECTORY/${PLAN_DATE}.json"
+          fi
 
       - name: Resolve trigger schedule
         id: trigger
@@ -80,27 +116,27 @@ jobs:
           SNAPSHOT_PATH: ${{ steps.collect.outputs.snapshotPath }}
         run: npm run complete:snapshot-slot
 
-      - name: Commit and push generated data
+      - name: Publish live runtime data
         if: steps.check.outputs.selected == 'true'
         env:
-          SLOT_ID: ${{ steps.check.outputs.slotId }}
-          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          GH_TOKEN: ${{ github.token }}
+          PLAN_DATE: ${{ steps.check.outputs.planDate }}
         run: |
-          git config user.name "wnzid"
-          git config user.email "183149325+wnzid@users.noreply.github.com"
+          mkdir -p .release-upload
+          cp "$SNAPSHOT_DATA_DIRECTORY/history.json" .release-upload/history.json
+          cp "$SNAPSHOT_DATA_DIRECTORY/latest.json" .release-upload/latest.json
+          cp "$SNAPSHOT_PLAN_DIRECTORY/${PLAN_DATE}.json" .release-upload/plan.json
 
-          git add data/plans data/snapshots public/data
-
-          if git diff --cached --quiet; then
-            echo "No generated changes to commit."
-            exit 0
+          if ! gh release view "$DATA_RELEASE_TAG" >/dev/null 2>&1; then
+            gh release create "$DATA_RELEASE_TAG" \
+              --target "${{ github.event.repository.default_branch }}" \
+              --title "Currency Pulse live data" \
+              --notes "Machine-generated runtime data for the Currency Pulse dashboard." \
+              --latest=false
           fi
 
-          git commit -m "data: record exchange rates at ${SLOT_ID}"
-
-          git pull --rebase origin "${DEFAULT_BRANCH}"
-
-          git push origin "HEAD:${DEFAULT_BRANCH}" || {
-            git pull --rebase origin "${DEFAULT_BRANCH}"
-            git push origin "HEAD:${DEFAULT_BRANCH}"
-          }
+          gh release upload "$DATA_RELEASE_TAG" \
+            .release-upload/history.json \
+            .release-upload/plan.json \
+            .release-upload/latest.json \
+            --clobber

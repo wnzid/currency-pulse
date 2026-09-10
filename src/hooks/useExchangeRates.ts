@@ -4,6 +4,7 @@ import {
   EMPTY_LATEST,
   normalizeHistory,
   normalizeLatestSnapshot,
+  resolveLatestSnapshot,
 } from "../utils/currency";
 import { publicAssetPath } from "../utils/assets";
 
@@ -44,19 +45,23 @@ export function useExchangeRates(): ExchangeRatesState {
 
       const errors: string[] = [];
 
-      if (latestResult.status === "fulfilled") {
-        setLatest(normalizeLatestSnapshot(latestResult.value));
-      } else {
-        setLatest(EMPTY_LATEST);
+      const normalizedLatest = latestResult.status === "fulfilled"
+        ? normalizeLatestSnapshot(latestResult.value)
+        : EMPTY_LATEST;
+      const normalizedHistory = historyResult.status === "fulfilled"
+        ? normalizeHistory(historyResult.value)
+        : [];
+
+      if (latestResult.status === "rejected") {
         errors.push("Latest snapshot could not be loaded.");
       }
 
-      if (historyResult.status === "fulfilled") {
-        setHistory(normalizeHistory(historyResult.value));
-      } else {
-        setHistory([]);
+      if (historyResult.status === "rejected") {
         errors.push("History data could not be loaded.");
       }
+
+      setLatest(resolveLatestSnapshot(normalizedLatest, normalizedHistory));
+      setHistory(normalizedHistory);
 
       setError(errors.length > 0 ? errors.join(" ") : null);
       setLoading(false);
