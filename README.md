@@ -75,3 +75,6 @@ The dashboard compares `latest.json` with the newest valid history item so a sta
 ## License
 
 No license is currently declared. All rights are reserved by default.
+    
+
+    
